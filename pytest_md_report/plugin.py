@@ -77,6 +77,18 @@ def pytest_addoption(parser):
         help=Option.MD_REPORT_ERROR_COLOR.help_msg
         + HelpMsg.EXTRA_MSG_TEMPLATE.format(Option.MD_REPORT_ERROR_COLOR.envvar_str),
     )
+    group.addoption(
+        Option.MD_REPORT_OUTPUT.cmdoption_str,
+        default=None,
+        help=Option.MD_REPORT_OUTPUT.help_msg
+        + HelpMsg.EXTRA_MSG_TEMPLATE.format(Option.MD_REPORT_OUTPUT.envvar_str),
+    )
+    group.addoption(
+        Option.MD_REPORT_TITLE.cmdoption_str,
+        default=None,
+        help=Option.MD_REPORT_TITLE.help_msg
+        + HelpMsg.EXTRA_MSG_TEMPLATE.format(Option.MD_REPORT_TITLE.envvar_str),
+    )
 
     parser.addini(
         Option.MD_REPORT.inioption_str, type="bool", default=False, help=Option.MD_REPORT.help_msg
@@ -107,6 +119,16 @@ def pytest_addoption(parser):
         Option.MD_REPORT_ERROR_COLOR.inioption_str,
         default=None,
         help=Option.MD_REPORT_ERROR_COLOR.help_msg,
+    )
+    parser.addini(
+        Option.MD_REPORT_OUTPUT.inioption_str,
+        default=None,
+        help=Option.MD_REPORT_OUTPUT.help_msg,
+    )
+    parser.addini(
+        Option.MD_REPORT_TITLE.inioption_str,
+        default=None,
+        help=Option.MD_REPORT_TITLE.help_msg,
     )
 
 
@@ -397,7 +419,8 @@ def make_md_report(
     verbosity_level = retrieve_verbosity_level(config)
 
     outcomes = ["passed", "failed", "error", "skipped", "xfailed", "xpassed"]
-    outcomes = [key for key in outcomes if total_stats.get(key, 0) > 0]
+    outcomes = [key for key in outcomes ]
+    # if total_stats.get(key, 0) > 0]
     results_per_testfunc = extract_pytest_stats(
         reporter=reporter, outcomes=outcomes, verbosity_level=verbosity_level
     )
@@ -405,20 +428,20 @@ def make_md_report(
     writer = TableWriterFactory.create_from_format_name("md")
 
     matrix = [
-        list(key) + [results.get(key, 0) for key in outcomes] + [sum(results.values())]
+        [config.option.md_report_title] + list(key) + [results.get(key, 0) for key in outcomes] + [sum(results.values())]
         for key, results in results_per_testfunc.items()
     ]
     if verbosity_level == 0:
-        writer.headers = [Header.FILEPATH] + outcomes + [Header.SUBTOTAL]
+        writer.headers = [Header.TITLE] + [Header.FILEPATH] + outcomes + [Header.SUBTOTAL]
         matrix.append(
-            ["TOTAL"]
+            ["TOTAL", ""]
             + [total_stats.get(key, 0) for key in outcomes]  # type: ignore
             + [sum(total_stats.values())]  # type: ignore
         )
     elif verbosity_level >= 1:
-        writer.headers = [Header.FILEPATH, Header.TESTFUNC] + outcomes + [Header.SUBTOTAL]
+        writer.headers = [Header.TITLE, Header.FILEPATH, Header.TESTFUNC] + outcomes + [Header.SUBTOTAL]
         matrix.append(
-            ["TOTAL", ""]
+            ["TOTAL", "", ""]
             + [total_stats.get(key, 0) for key in outcomes]  # type: ignore
             + [sum(total_stats.values())]  # type: ignore
         )
@@ -465,3 +488,7 @@ def pytest_unconfigure(config):
     reporter = config.pluginmanager.get_plugin("terminalreporter")
     stat_count_map = retrieve_stat_count_map(reporter)
     reporter._tw.write(make_md_report(config, reporter, stat_count_map))
+    if config.option.md_report_output:
+        md_report_output_path = config.option.md_report_output
+        with open(md_report_output_path, mode='a') as f:
+            f.write('\n' + make_md_report(config, reporter, stat_count_map))

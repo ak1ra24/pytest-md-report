@@ -8,6 +8,7 @@ COLOR_NAMES = "/".join([style.name.lower() for style in list(AnsiFGColor)])
 
 
 class Header:
+    TITLE    = "title"
     FILEPATH = "filepath"
     TESTFUNC = "function"
     SUBTOTAL = "SUBTOTAL"
@@ -123,6 +124,24 @@ class Option(Enum):
             defaults to {default}.
             """
         ).format(names=COLOR_NAMES, default=Default.FGColor.ERROR),
+    )
+    MD_REPORT_OUTPUT = (
+        "md-report-output",
+        dedent(
+            """\
+            Set the file to output the report.
+            defaults to {default}.
+            """
+        ).format(default=None),
+    )
+    MD_REPORT_TITLE = (
+        "md-report-title",
+        dedent(
+            """\
+            name for the title column.
+            defaults to {default}.
+            """
+        ).format(default=Default.FGColor.ERROR),
     )
 
     @property
